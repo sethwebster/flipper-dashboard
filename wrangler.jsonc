@@ -1,6 +1,14 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "flipper-dashboard",
-  "pages_build_output_dir": "./site",
-  "compatibility_date": "2026-08-23"
+  "name": "flipper-dashboard-site",
+  "compatibility_date": "2026-08-23",
+  "assets": {
+    "directory": "./site"
+  },
+  "routes": [
+    {
+      "pattern": "flipper-dashboard.noisyneighbor.studio",
+      "custom_domain": true
+    }
+  ]
 }
