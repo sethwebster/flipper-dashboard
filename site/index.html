@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#171817">
+    <meta name="description" content="Control every saved IR remote and Sub-GHz signal on your USB-connected Flipper Zero from the macOS menu bar.">
+    <meta property="og:title" content="Flipper Dashboard for macOS">
+    <meta property="og:description" content="Your Flipper's saved controls, one click from the Mac menu bar.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://flipper-dashboard.noisyneighbor.studio">
+    <title>Flipper Dashboard for macOS</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/styles.css?v=1.0.0">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Flipper Dashboard home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>Flipper / Dashboard</span>
+      </a>
+      <a class="source-link" href="https://github.com/sethwebster/flipper-dashboard">Source on GitHub <span aria-hidden="true">↗</span></a>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Native macOS · Open source</p>
+          <h1 id="hero-title">Every saved signal.<br>One menu bar.</h1>
+          <p class="hero-summary">Control IR remotes and Sub-GHz signals already stored on your Flipper Zero—directly over USB, with no cloud in between.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="https://github.com/sethwebster/flipper-dashboard/releases/latest/download/Flipper-Dashboard.dmg">Download for Mac</a>
+            <a class="button button-secondary" href="https://github.com/sethwebster/flipper-dashboard">View source</a>
+          </div>
+          <p class="release-meta">v1.0.0 <span aria-hidden="true">/</span> macOS 13+ <span aria-hidden="true">/</span> Universal binary</p>
+        </div>
+
+        <figure class="product-stage" aria-labelledby="preview-caption">
+          <div class="signal-field" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="flipper-shell" aria-hidden="true">
+            <div class="flipper-screen">
+              <span>USB CLI</span>
+              <strong>READY</strong>
+              <i></i>
+            </div>
+            <div class="flipper-pad"><i></i></div>
+            <div class="flipper-key"></div>
+          </div>
+          <div class="cable" aria-hidden="true"></div>
+          <div class="dashboard-window" aria-hidden="true">
+            <div class="window-top">
+              <div class="window-logo"><span></span></div>
+              <div>
+                <strong>Flipper Dashboard</strong>
+                <small><i></i> Live on Flipper</small>
+              </div>
+            </div>
+            <div class="remote-group">
+              <div class="group-label"><span>◉</span> Infrared</div>
+              <p>Living room</p>
+              <div class="control-grid">
+                <span>Power</span><span>Volume +</span><span>Volume −</span>
+                <span>Mute</span><span>Input</span><span>Menu</span>
+              </div>
+            </div>
+            <div class="remote-group compact">
+              <div class="group-label"><span>)))</span> Sub-GHz</div>
+              <div class="control-grid"><span>Open</span><span>Close</span><span>Stop</span></div>
+            </div>
+            <div class="window-foot"><span>Refresh</span><small>Live refresh: 15s</small></div>
+          </div>
+          <figcaption id="preview-caption">Flipper Dashboard discovers controls stored on a connected Flipper Zero.</figcaption>
+        </figure>
+      </section>
+
+      <section class="workflow reveal" aria-labelledby="workflow-title">
+        <div class="section-heading">
+          <p class="eyebrow">No setup ritual</p>
+          <h2 id="workflow-title">USB in. Saved signals out.</h2>
+        </div>
+        <ol class="steps">
+          <li><span>01</span><strong>Connect</strong><p>Plug in a Flipper Zero with a data-capable USB cable.</p></li>
+          <li><span>02</span><strong>Discover</strong><p>The dashboard reads saved operations from the microSD card.</p></li>
+          <li><span>03</span><strong>Send</strong><p>Choose any discovered IR or Sub-GHz button from the menu bar.</p></li>
+        </ol>
+      </section>
+
+      <section class="details reveal" aria-labelledby="details-title">
+        <div class="details-copy">
+          <p class="eyebrow">Local by design</p>
+          <h2 id="details-title">Your controls stay on your hardware.</h2>
+          <p>Flipper Dashboard talks to the local serial CLI. There is no account, telemetry, hosted bridge, or arbitrary command shell.</p>
+        </div>
+        <!-- role=list preserves Safari semantics when CSS removes list markers. -->
+        <ul class="feature-list" role="list">
+          <li><span>IR</span><strong>All saved remotes</strong><small>Parsed and raw signals</small></li>
+          <li><span>RF</span><strong>One-shot Sub-GHz</strong><small>Saved files only</small></li>
+          <li><span>SD</span><strong>Live inventory</strong><small>NFC, RFID, BadUSB, and media</small></li>
+          <li><span>⌘</span><strong>Native SwiftUI</strong><small>macOS 13 and later</small></li>
+        </ul>
+      </section>
+
+      <section class="final-cta reveal" aria-labelledby="download-title">
+        <p class="eyebrow">Ready when your Flipper is</p>
+        <h2 id="download-title">Put the remote in your menu bar.</h2>
+        <div class="hero-actions">
+          <a class="button button-primary" href="https://github.com/sethwebster/flipper-dashboard/releases/latest/download/Flipper-Dashboard.dmg">Download notarized DMG</a>
+          <a class="text-link" href="https://github.com/sethwebster/flipper-dashboard/releases/latest/download/Flipper-Dashboard.dmg.sha256">SHA-256 checksum</a>
+        </div>
+        <p class="legal">Use radio features only with devices you own or are authorized to control.</p>
+      </section>
+    </main>
+
+    <footer>
+      <span>MIT licensed · Built by <a href="https://noisyneighbor.studio">Noisy Neighbor</a></span>
+      <span>Independent of Flipper Devices Inc.</span>
+    </footer>
+  </body>
+</html>

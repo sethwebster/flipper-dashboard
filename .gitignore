@@ -1,0 +1,12 @@
+.DS_Store
+.build/
+.swiftpm/
+.xcode-build/
+.xcode-release/
+.wrangler/
+DerivedData/
+*.xcodeproj/
+*.xcworkspace/
+graphify-out/
+Sources/graphify-out/
+xcuserdata/
