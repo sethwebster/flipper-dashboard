@@ -6,8 +6,9 @@ Flipper Dashboard is a native macOS menu bar app for sending operations saved on
 
 - Discovers every saved infrared remote and exposes its buttons.
 - Discovers saved Sub-GHz files and sends one transmission at a time.
+- Pins frequently used operations to the top and remembers their order.
 - Recursively counts NFC, LF RFID, BadUSB, miscellaneous, and media files.
-- Refreshes while the dashboard is open.
+- Refreshes every 60 seconds while the dashboard is open without disabling operations.
 - Closes an app running on the Flipper before sending, which keeps the CLI available.
 - Uses no network service, account, telemetry, or cloud bridge.
 

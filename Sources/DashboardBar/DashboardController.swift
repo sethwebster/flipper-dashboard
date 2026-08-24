@@ -4,6 +4,8 @@ import Foundation
 
 @MainActor
 final class DashboardController: ObservableObject {
+    typealias InventoryLoader = @Sendable () async throws -> FlipperInventorySnapshot
+
     enum State: Equatable {
         case checking
         case ready(String)
@@ -29,18 +31,55 @@ final class DashboardController: ObservableObject {
 
     @Published private(set) var state: State = .checking
     @Published private(set) var snapshot: FlipperInventorySnapshot?
-    @Published private(set) var isBusy = false
+    @Published private(set) var isRefreshing = false
+    @Published private(set) var isSending = false
+    @Published private(set) var pinnedOperationIDs: [String]
 
-    private let inventoryService = FlipperInventoryService()
+    var pinnedOperations: [DashboardOperation] {
+        let operationsByID = Dictionary(
+            uniqueKeysWithValues: allOperations.map { ($0.id, $0) }
+        )
+        return pinnedOperationIDs.compactMap { operationsByID[$0] }
+    }
+
+    private static let pinnedOperationsKey = "PinnedOperationIDs"
+
+    private let defaults: UserDefaults
+    private let loadInventory: InventoryLoader
+    private let pollInterval: Duration
     private let subGHzService = FlipperSubGHzService()
     private var pollingTask: Task<Void, Never>?
+    private var refreshTask: Task<Void, Never>?
+    private var sendTask: Task<Void, Never>?
+
+    init(
+        defaults: UserDefaults = .standard,
+        pollInterval: Duration = .seconds(60),
+        loadInventory: @escaping InventoryLoader = {
+            let scan = Task.detached(priority: .utility) {
+                try FlipperInventoryService().inspect()
+            }
+            return try await withTaskCancellationHandler {
+                try await scan.value
+            } onCancel: {
+                scan.cancel()
+            }
+        }
+    ) {
+        self.defaults = defaults
+        self.pollInterval = pollInterval
+        self.loadInventory = loadInventory
+        pinnedOperationIDs = defaults.stringArray(
+            forKey: Self.pinnedOperationsKey
+        ) ?? []
+    }
 
     func startLiveUpdates() {
         pollingTask?.cancel()
         refresh()
-        pollingTask = Task { [weak self] in
+        pollingTask = Task { [weak self, pollInterval] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(15))
+                try? await Task.sleep(for: pollInterval)
                 guard !Task.isCancelled else { return }
                 self?.refresh(silent: true)
             }
@@ -50,67 +89,98 @@ final class DashboardController: ObservableObject {
     func stopLiveUpdates() {
         pollingTask?.cancel()
         pollingTask = nil
+        refreshTask?.cancel()
     }
 
     func refresh(silent: Bool = false) {
-        guard !isBusy else { return }
+        guard !isRefreshing, !isSending else { return }
 
-        isBusy = true
+        isRefreshing = true
         if !silent || snapshot == nil {
             state = .checking
         }
 
-        Task {
-            defer { isBusy = false }
+        refreshTask = Task { [weak self, loadInventory] in
+            defer {
+                self?.isRefreshing = false
+                self?.refreshTask = nil
+            }
+
             do {
-                let result = try await inventoryService.inspect()
+                let result = try await loadInventory()
+                try Task.checkCancellation()
+                guard let self else { return }
                 snapshot = result
                 state = .ready(Self.deviceName(from: result.port))
+            } catch is CancellationError {
+                return
             } catch {
-                state = .failure(error.localizedDescription)
+                guard !Task.isCancelled else { return }
+                self?.state = .failure(error.localizedDescription)
             }
         }
     }
 
-    func sendInfrared(remote: SavedInfraredRemote, signal: InfraredSignal) {
-        guard !isBusy else { return }
+    func send(_ operation: DashboardOperation) {
+        guard !isSending else { return }
 
-        let operation = "\(remote.name) \(displayName(signal.name))"
-        isBusy = true
-        state = .sending(operation)
+        isSending = true
+        state = .sending(operation.statusName)
 
-        Task {
-            defer { isBusy = false }
+        let pendingRefresh = refreshTask
+        pendingRefresh?.cancel()
+
+        sendTask = Task { [weak self] in
+            _ = await pendingRefresh?.result
+            guard let self else { return }
+
+            defer {
+                isSending = false
+                sendTask = nil
+            }
+
             do {
-                let service = FlipperIRService(remotePath: remote.path)
-                _ = try await service.send(signalNamed: signal.name)
-                state = .success(operation)
+                switch operation {
+                case let .infrared(remote, signal):
+                    let service = FlipperIRService(remotePath: remote.path)
+                    _ = try await service.send(signalNamed: signal.name)
+                case let .subGHz(signal):
+                    try await subGHzService.transmit(filePath: signal.path)
+                }
+                state = .success(operation.statusName)
             } catch {
                 state = .failure(error.localizedDescription)
             }
         }
     }
 
-    func sendSubGHz(_ signal: SavedSubGHzSignal) {
-        guard !isBusy else { return }
-
-        let operation = "Sub-GHz \(signal.name)"
-        isBusy = true
-        state = .sending(operation)
-
-        Task {
-            defer { isBusy = false }
-            do {
-                try await subGHzService.transmit(filePath: signal.path)
-                state = .success(operation)
-            } catch {
-                state = .failure(error.localizedDescription)
-            }
-        }
+    func isPinned(_ operation: DashboardOperation) -> Bool {
+        pinnedOperationIDs.contains(operation.id)
     }
 
-    func displayName(_ storedName: String) -> String {
-        storedName.replacingOccurrences(of: "_", with: " ")
+    func togglePin(_ operation: DashboardOperation) {
+        togglePin(id: operation.id)
+    }
+
+    func togglePin(id: String) {
+        if let index = pinnedOperationIDs.firstIndex(of: id) {
+            pinnedOperationIDs.remove(at: index)
+        } else {
+            pinnedOperationIDs.append(id)
+        }
+        defaults.set(pinnedOperationIDs, forKey: Self.pinnedOperationsKey)
+    }
+
+    private var allOperations: [DashboardOperation] {
+        guard let snapshot else { return [] }
+
+        let infrared = snapshot.infraredRemotes.flatMap { remote in
+            remote.signals.map { signal in
+                DashboardOperation.infrared(remote: remote, signal: signal)
+            }
+        }
+        let subGHz = snapshot.subGHzSignals.map(DashboardOperation.subGHz)
+        return infrared + subGHz
     }
 
     private static func deviceName(from port: String) -> String {

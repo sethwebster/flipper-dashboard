@@ -6,7 +6,7 @@ struct DashboardView: View {
     @ObservedObject var controller: DashboardController
 
     private let actionColumns = [
-        GridItem(.adaptive(minimum: 104), spacing: 8),
+        GridItem(.adaptive(minimum: 154), spacing: 8),
     ]
 
     var body: some View {
@@ -15,6 +15,7 @@ struct DashboardView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
+                    pinnedSection
                     infraredSection
                     subGHzSection
                     savedDataSection
@@ -56,9 +57,24 @@ struct DashboardView: View {
 
             Spacer(minLength: 0)
 
-            if controller.isBusy {
+            if controller.isSending || (controller.isRefreshing && controller.snapshot == nil) {
                 ProgressView()
                     .controlSize(.small)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var pinnedSection: some View {
+        if !controller.pinnedOperations.isEmpty {
+            GroupBox {
+                LazyVGrid(columns: actionColumns, spacing: 8) {
+                    ForEach(controller.pinnedOperations) { operation in
+                        operationButton(operation, name: operation.pinnedName)
+                    }
+                }
+            } label: {
+                Label("Pinned", systemImage: "pin.fill")
             }
         }
     }
@@ -75,17 +91,9 @@ struct DashboardView: View {
 
                             LazyVGrid(columns: actionColumns, spacing: 8) {
                                 ForEach(remote.signals) { signal in
-                                    Button {
-                                        controller.sendInfrared(remote: remote, signal: signal)
-                                    } label: {
-                                        Label(
-                                            controller.displayName(signal.name),
-                                            systemImage: infraredIcon(for: signal.name)
-                                        )
-                                        .frame(maxWidth: .infinity, minHeight: 28)
-                                    }
-                                    .buttonStyle(.bordered)
-                                    .disabled(controller.isBusy)
+                                    operationButton(
+                                        .infrared(remote: remote, signal: signal)
+                                    )
                                 }
                             }
                         }
@@ -104,14 +112,7 @@ struct DashboardView: View {
             GroupBox {
                 LazyVGrid(columns: actionColumns, spacing: 8) {
                     ForEach(signals) { signal in
-                        Button {
-                            controller.sendSubGHz(signal)
-                        } label: {
-                            Label(signal.name, systemImage: "antenna.radiowaves.left.and.right")
-                                .frame(maxWidth: .infinity, minHeight: 28)
-                        }
-                        .buttonStyle(.bordered)
-                        .disabled(controller.isBusy)
+                        operationButton(.subGHz(signal))
                     }
                 }
             } label: {
@@ -163,11 +164,11 @@ struct DashboardView: View {
                 controller.refresh()
             }
             .buttonStyle(.plain)
-            .disabled(controller.isBusy)
+            .disabled(controller.isRefreshing || controller.isSending)
 
             Spacer()
 
-            Text("Live refresh: 15s")
+            Text("Live refresh: 60s")
                 .foregroundStyle(.tertiary)
 
             Button("Quit") {
@@ -190,13 +191,39 @@ struct DashboardView: View {
         }
     }
 
-    private func infraredIcon(for name: String) -> String {
-        switch name.lowercased() {
-        case "power": "power"
-        case "mute": "speaker.slash.fill"
-        case "speed_up": "plus"
-        case "speed_down": "minus"
-        default: "button.programmable"
+    private func operationButton(
+        _ operation: DashboardOperation,
+        name: String? = nil
+    ) -> some View {
+        HStack(spacing: 4) {
+            Button {
+                controller.send(operation)
+            } label: {
+                Label(name ?? operation.shortName, systemImage: operation.systemImage)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, minHeight: 28)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(controller.isSending)
+
+            Button {
+                controller.togglePin(operation)
+            } label: {
+                Image(systemName: controller.isPinned(operation) ? "pin.fill" : "pin")
+                    .font(.caption)
+                    .foregroundStyle(
+                        controller.isPinned(operation) ? Color.accentColor : Color.secondary
+                    )
+                    .frame(width: 22, height: 28)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(
+                "\(controller.isPinned(operation) ? "Unpin" : "Pin") \(operation.pinnedName)"
+            )
+            .help(controller.isPinned(operation) ? "Unpin" : "Pin to top")
         }
+        .frame(maxWidth: .infinity)
     }
 }

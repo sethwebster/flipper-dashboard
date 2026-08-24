@@ -93,11 +93,13 @@ public actor FlipperInventoryService {
     public init() {}
 
     public func inspect() throws -> FlipperInventorySnapshot {
+        try Task.checkCancellation()
         let session = try FlipperSerialSession()
 
         let infraredEntries = try filesRecursively(in: "/ext/infrared", using: session)
         var infraredRemotes: [SavedInfraredRemote] = []
         for entry in infraredEntries where entry.name.lowercased().hasSuffix(".ir") {
+            try Task.checkCancellation()
             do {
                 let output = try session.command("storage read \(entry.path)", timeout: 10)
                 let remote = try InfraredRemoteParser.parse(output)
@@ -119,6 +121,7 @@ public actor FlipperInventoryService {
                 )
             }
 
+        try Task.checkCancellation()
         let nfcFiles = try filesRecursively(in: "/ext/nfc", using: session)
         let rfidFiles = try filesRecursively(in: "/ext/lfrfid", using: session)
         let badUSBFiles = try filesRecursively(in: "/ext/badusb", using: session)
@@ -146,7 +149,9 @@ public actor FlipperInventoryService {
         _ directory: String,
         using session: FlipperSerialSession
     ) throws -> [FlipperStorageEntry] {
+        try Task.checkCancellation()
         let output = try session.command("storage list \(directory)", timeout: 15)
+        try Task.checkCancellation()
         if output.contains("Storage error:") {
             return []
         }
@@ -158,11 +163,13 @@ public actor FlipperInventoryService {
         remainingDepth: Int = 8,
         using session: FlipperSerialSession
     ) throws -> [FlipperStorageEntry] {
+        try Task.checkCancellation()
         guard remainingDepth >= 0 else { return [] }
 
         let entries = try list(directory, using: session)
         var files = entries.filter { $0.kind == .file }
         for child in entries where child.kind == .directory {
+            try Task.checkCancellation()
             files += try filesRecursively(
                 in: child.path,
                 remainingDepth: remainingDepth - 1,

@@ -14,5 +14,9 @@ let package = Package(
         .target(name: "FlipperIRCore"),
         .executableTarget(name: "DashboardBar", dependencies: ["FlipperIRCore"]),
         .testTarget(name: "FlipperIRCoreTests", dependencies: ["FlipperIRCore"]),
+        .testTarget(
+            name: "DashboardBarTests",
+            dependencies: ["DashboardBar", "FlipperIRCore"]
+        ),
     ]
 )
